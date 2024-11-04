@@ -9,6 +9,9 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Float32, Bool
 import actionlib
 
+from dynamic_reconfigure.server import Server as ReconfigServer
+from diff_drive.cfg import pidConfig as ConfigType
+
 from diff_drive import goal_controller
 from diff_drive import pose
 from diff_drive.msg import GoToPoseAction, GoToPoseGoal, GoToPoseResult
@@ -18,6 +21,8 @@ class GoToGoalNode:
     def __init__(self):
         self.controller = goal_controller.GoalController()
 
+    # https://wiki.ros.org/ROSNodeTutorialPython
+    # https://github.com/tdenewiler/node_example/blob/main/src/pytalker.py
     def main(self):
         rospy.init_node('diff_drive_go_to_goal')
 
@@ -44,13 +49,13 @@ class GoToGoalNode:
         self.goal_achieved_pub = rospy.Publisher('goal_achieved', Bool,
                                                  queue_size=1)
 
-        rate = rospy.get_param('~rate', 10.0)
+        rate = rospy.get_param('rate', 10.0)
         self.rate = rospy.Rate(rate)
         self.dT = 1 / rate
 
-        self.kP = rospy.get_param('~kP', 3.0)
-        self.kA = rospy.get_param('~kA', 8.0)
-        self.kB = rospy.get_param('~kB', -1.5)
+        self.kP = rospy.get_param('kP', 3.0)
+        self.kA = rospy.get_param('kA', 8.0)
+        self.kB = rospy.get_param('kB', -1.5)
         self.controller.set_constants(self.kP, self.kA, self.kB)
 
         self.controller.set_linear_tolerance(
@@ -59,11 +64,11 @@ class GoToGoalNode:
             rospy.get_param('~angular_tolerance', 3/180*pi))
 
         self.controller.set_max_linear_speed(
-            rospy.get_param('~max_linear_speed', 0.2))
+            float(rospy.get_param('max_linear_speed', 0.2)))
         self.controller.set_min_linear_speed(
             rospy.get_param('~min_linear_speed', 0))
         self.controller.set_max_angular_speed(
-            rospy.get_param('~max_angular_speed', 1.0))
+            float(rospy.get_param('max_angular_speed', 1.0)))
         self.controller.set_min_angular_speed(
             rospy.get_param('~min_angular_speed', 0))
         self.controller.set_max_linear_acceleration(
@@ -76,12 +81,14 @@ class GoToGoalNode:
         # reverse. We default to forward movement only since many
         # sensors are front-facing.
         self.controller.set_forward_movement_only(
-            rospy.get_param('~forwardMovementOnly', True))
+            rospy.get_param('~forwardMovementOnly', False))
 
         self.init_pose()
         self.goal = None
 
         self.action_server.start()
+        
+        self.server = ReconfigServer(ConfigType, self.reconfigure_cb)
         rospy.spin()
 
     def on_execute(self, goal):
@@ -166,6 +173,19 @@ class GoToGoalNode:
         angle_pose.y = quaternion_pose.position.y
         angle_pose.theta = yaw
         return angle_pose
+
+    def reconfigure_cb(self, config, dummy):
+        self.kP = config["kP"]
+        self.kA = config["kA"]
+        self.kB = config["kB"]
+        self.controller.set_max_linear_speed = config["max_linear_speed"]
+        self.controller.set_max_angular_speed = config["max_angular_speed"]
+        rate = config["rate"]
+        #self.controller.set_max_linear_acceleration = config("~max_linear_acceleration")
+        #self.controller.set_max_angular_acceleration = config("~max_angular_acceleration")
+        rospy.loginfo("""Reconfigure Request: {kP}, {kA}, {kB}, {rate},
+                {max_linear_speed}, {max_angular_speed}""".format(**config))
+        return config
 
 if __name__ == '__main__':
     try:

@@ -1,5 +1,13 @@
-= diff_drive -- Differential-Drive Controller
+# Lesson4
 :imagesdir: ./images
+
+These are resources to join Lesson 4.
+
+- only diff_drive_go_to_goal node is required to run tarkbot
+- perfect controls could be demonstrated on RViz without PID parameters tuning by keeping the robot stationary on table while letting both wheels spinning freely
+
+
+= diff_drive -- Differential-Drive Controller
 
 This package implements ROS nodes to control and monitor a differential-drive robot.
 
