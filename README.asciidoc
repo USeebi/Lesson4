@@ -7,7 +7,7 @@ These are resources to join Lesson 4.
 - perfect controls could be demonstrated on RViz without PID parameters tuning by keeping the robot stationary on table while letting both wheels spinning freely
 
 
-= diff_drive -- Differential-Drive Controller
+== diff_drive -- Differential-Drive Controller
 
 This package implements ROS nodes to control and monitor a differential-drive robot.
 
